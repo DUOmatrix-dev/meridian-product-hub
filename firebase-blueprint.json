@@ -1,0 +1,462 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private user profile and active workspace preference",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 200
+        },
+        "role": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "activeWorkspaceId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "email", "role", "activeWorkspaceId", "updatedAt"]
+    },
+    "Workspace": {
+      "title": "Workspace",
+      "description": "Product team alignment workspace containing North Star metric and members",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "productArea": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "quarter": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 32
+        },
+        "northStarMetric": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 140
+        },
+        "northStarCurrent": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "northStarTarget": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "memberUids": {
+          "type": "array",
+          "maxLength": 20
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "productArea",
+        "quarter",
+        "northStarMetric",
+        "northStarCurrent",
+        "northStarTarget",
+        "ownerId",
+        "memberUids",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "FeatureRequest": {
+      "title": "FeatureRequest",
+      "description": "Prioritized product initiative or feature request with RICE score, PRD details, and roadmap horizon",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "memberUids": {
+          "type": "array",
+          "maxLength": 20
+        },
+        "title": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 140
+        },
+        "problemStatement": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 2000
+        },
+        "persona": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "horizon": {
+          "type": "string",
+          "enum": ["now", "next", "later", "not_building"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["discovery", "scoped", "in_design", "in_dev", "shipped", "deferred"]
+        },
+        "ownerName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "timeframe": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "reach": {
+          "type": "number"
+        },
+        "impact": {
+          "type": "number"
+        },
+        "confidence": {
+          "type": "number"
+        },
+        "effort": {
+          "type": "number"
+        },
+        "riceScore": {
+          "type": "number"
+        },
+        "successMetric": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 140
+        },
+        "metricBaseline": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "metricTarget": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "nonGoals": {
+          "type": "string",
+          "maxLength": 1500
+        },
+        "solutionOverview": {
+          "type": "string",
+          "maxLength": 3000
+        },
+        "acceptanceCriteria": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "rollbackCriteria": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "deferralReason": {
+          "type": "string",
+          "maxLength": 800
+        },
+        "revisitCondition": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "requestSource": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "confidenceLevel": {
+          "type": "string",
+          "enum": ["high", "medium", "low"]
+        },
+        "storyPoints": {
+          "type": "number"
+        },
+        "sprint": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "workspaceId",
+        "ownerId",
+        "memberUids",
+        "title",
+        "problemStatement",
+        "persona",
+        "horizon",
+        "status",
+        "ownerName",
+        "timeframe",
+        "reach",
+        "impact",
+        "confidence",
+        "effort",
+        "riceScore",
+        "successMetric",
+        "metricBaseline",
+        "metricTarget",
+        "nonGoals",
+        "solutionOverview",
+        "acceptanceCriteria",
+        "rollbackCriteria",
+        "deferralReason",
+        "revisitCondition",
+        "requestSource",
+        "confidenceLevel",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "FeedbackItem": {
+      "title": "FeedbackItem",
+      "description": "Captured user evidence, interview quote, support signal, or behavioral data",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "memberUids": {
+          "type": "array",
+          "maxLength": 20
+        },
+        "title": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 140
+        },
+        "quote": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 1500
+        },
+        "channel": {
+          "type": "string",
+          "enum": ["interview", "support", "analytics", "sales", "competitive"]
+        },
+        "customerSegment": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "reporterName": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "urgency": {
+          "type": "string",
+          "enum": ["high", "medium", "low"]
+        },
+        "linkedRequestId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "arrImpact": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "workspaceId",
+        "ownerId",
+        "memberUids",
+        "title",
+        "quote",
+        "channel",
+        "customerSegment",
+        "reporterName",
+        "urgency",
+        "linkedRequestId",
+        "arrImpact",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AlignmentDecision": {
+      "title": "AlignmentDecision",
+      "description": "Formal product decision log entry with rationale, trade-offs, and sign-off status",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "memberUids": {
+          "type": "array",
+          "maxLength": 20
+        },
+        "requestId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 140
+        },
+        "decisionType": {
+          "type": "string",
+          "enum": ["build", "explore", "defer", "kill", "scope_change"]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 2000
+        },
+        "tradeOffs": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "confidencePct": {
+          "type": "number"
+        },
+        "decidedBy": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "approvalStatus": {
+          "type": "string",
+          "enum": ["proposed", "aligned", "locked"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "workspaceId",
+        "ownerId",
+        "memberUids",
+        "requestId",
+        "title",
+        "decisionType",
+        "rationale",
+        "tradeOffs",
+        "confidencePct",
+        "decidedBy",
+        "approvalStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/private/profile": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Isolated private user profile and PII"
+    },
+    "/workspaces/{workspaceId}": {
+      "schema": { "$ref": "#/entities/Workspace" },
+      "description": "Product team workspaces"
+    },
+    "/workspaces/{workspaceId}/requests/{requestId}": {
+      "schema": { "$ref": "#/entities/FeatureRequest" },
+      "description": "Feature requests, backlog items, PRDs, and roadmap items"
+    },
+    "/workspaces/{workspaceId}/feedback/{feedbackId}": {
+      "schema": { "$ref": "#/entities/FeedbackItem" },
+      "description": "Customer feedback and discovery evidence"
+    },
+    "/workspaces/{workspaceId}/decisions/{decisionId}": {
+      "schema": { "$ref": "#/entities/AlignmentDecision" },
+      "description": "Product decisions, trade-offs, and stakeholder alignment records"
+    }
+  }
+}

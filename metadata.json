@@ -1,0 +1,6 @@
+{
+  "name": "Meridian",
+  "description": "Product alignment hub for capturing discovery feedback, RICE-prioritizing backlog items, managing Now/Next/Later roadmaps, and documenting decisions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,347 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitive Helpers ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isValidMemberUids(list) {
+      return list is list &&
+        list.size() >= 1 &&
+        list.size() <= 20 &&
+        list[0] is string &&
+        request.auth.uid in list;
+    }
+
+    function isWorkspaceMember(workspaceId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/workspaces/$(workspaceId)) &&
+        request.auth.uid in get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.memberUids;
+    }
+
+    function isWorkspaceMemberAfter(workspaceId) {
+      return isSignedIn() &&
+        existsAfter(/databases/$(database)/documents/workspaces/$(workspaceId)) &&
+        request.auth.uid in getAfter(/databases/$(database)/documents/workspaces/$(workspaceId)).data.memberUids;
+    }
+
+    function isWorkspaceOwner(workspaceId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/workspaces/$(workspaceId)) &&
+        get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
+    }
+
+    // --- Entity Validation Blueprints ---
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'email', 'role', 'activeWorkspaceId', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'displayName', 'email', 'role', 'activeWorkspaceId', 'updatedAt']) &&
+        isValidId(data.uid) &&
+        data.uid == userId &&
+        data.uid == request.auth.uid &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120 &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 200 &&
+        data.role is string && data.role.size() >= 1 && data.role.size() <= 60 &&
+        isValidId(data.activeWorkspaceId) &&
+        data.updatedAt is timestamp && data.updatedAt == request.time;
+    }
+
+    function isValidWorkspace(data, workspaceId) {
+      return data.keys().hasAll([
+          'id', 'name', 'productArea', 'quarter', 'northStarMetric',
+          'northStarCurrent', 'northStarTarget', 'ownerId', 'memberUids',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'name', 'productArea', 'quarter', 'northStarMetric',
+          'northStarCurrent', 'northStarTarget', 'ownerId', 'memberUids',
+          'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) &&
+        data.id == workspaceId &&
+        data.name is string && data.name.size() >= 2 && data.name.size() <= 80 &&
+        data.productArea is string && data.productArea.size() >= 2 && data.productArea.size() <= 80 &&
+        data.quarter is string && data.quarter.size() >= 2 && data.quarter.size() <= 32 &&
+        data.northStarMetric is string && data.northStarMetric.size() >= 3 && data.northStarMetric.size() <= 140 &&
+        data.northStarCurrent is string && data.northStarCurrent.size() <= 40 &&
+        data.northStarTarget is string && data.northStarTarget.size() <= 40 &&
+        isValidId(data.ownerId) &&
+        isValidMemberUids(data.memberUids) &&
+        data.ownerId in data.memberUids &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp && data.updatedAt == request.time;
+    }
+
+    function isValidFeatureRequest(data, workspaceId, requestId) {
+      return data.keys().hasAll([
+          'id', 'workspaceId', 'ownerId', 'memberUids', 'title', 'problemStatement',
+          'persona', 'horizon', 'status', 'ownerName', 'timeframe',
+          'reach', 'impact', 'confidence', 'effort', 'riceScore',
+          'successMetric', 'metricBaseline', 'metricTarget',
+          'nonGoals', 'solutionOverview', 'acceptanceCriteria', 'rollbackCriteria',
+          'deferralReason', 'revisitCondition', 'requestSource', 'confidenceLevel',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'workspaceId', 'ownerId', 'memberUids', 'title', 'problemStatement',
+          'persona', 'horizon', 'status', 'ownerName', 'timeframe',
+          'reach', 'impact', 'confidence', 'effort', 'riceScore',
+          'successMetric', 'metricBaseline', 'metricTarget',
+          'nonGoals', 'solutionOverview', 'acceptanceCriteria', 'rollbackCriteria',
+          'deferralReason', 'revisitCondition', 'requestSource', 'confidenceLevel',
+          'storyPoints', 'sprint', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) && data.id == requestId &&
+        isValidId(data.workspaceId) && data.workspaceId == workspaceId &&
+        isValidId(data.ownerId) &&
+        isValidMemberUids(data.memberUids) &&
+        data.title is string && data.title.size() >= 3 && data.title.size() <= 140 &&
+        data.problemStatement is string && data.problemStatement.size() >= 5 && data.problemStatement.size() <= 2000 &&
+        data.persona is string && data.persona.size() <= 100 &&
+        data.horizon in ['now', 'next', 'later', 'not_building'] &&
+        data.status in ['discovery', 'scoped', 'in_design', 'in_dev', 'shipped', 'deferred'] &&
+        data.ownerName is string && data.ownerName.size() >= 2 && data.ownerName.size() <= 80 &&
+        data.timeframe is string && data.timeframe.size() >= 2 && data.timeframe.size() <= 40 &&
+        data.reach is number && data.reach >= 0 && data.reach <= 10000000 &&
+        data.impact is number && data.impact >= 0.25 && data.impact <= 3 &&
+        data.confidence is number && data.confidence >= 1 && data.confidence <= 100 &&
+        data.effort is number && data.effort >= 0.25 && data.effort <= 100 &&
+        data.riceScore is number && data.riceScore >= 0 &&
+        data.successMetric is string && data.successMetric.size() >= 3 && data.successMetric.size() <= 140 &&
+        data.metricBaseline is string && data.metricBaseline.size() <= 40 &&
+        data.metricTarget is string && data.metricTarget.size() <= 40 &&
+        data.nonGoals is string && data.nonGoals.size() <= 1500 &&
+        data.solutionOverview is string && data.solutionOverview.size() <= 3000 &&
+        data.acceptanceCriteria is string && data.acceptanceCriteria.size() <= 2000 &&
+        data.rollbackCriteria is string && data.rollbackCriteria.size() <= 500 &&
+        data.deferralReason is string && data.deferralReason.size() <= 800 &&
+        data.revisitCondition is string && data.revisitCondition.size() <= 500 &&
+        data.requestSource is string && data.requestSource.size() <= 80 &&
+        data.confidenceLevel in ['high', 'medium', 'low'] &&
+        (!('storyPoints' in data) || (data.storyPoints is number && data.storyPoints >= 0 && data.storyPoints <= 100)) &&
+        (!('sprint' in data) || (data.sprint is string && data.sprint.size() <= 40)) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp && data.updatedAt == request.time;
+    }
+
+    function isValidFeedbackItem(data, workspaceId, feedbackId) {
+      return data.keys().hasAll([
+          'id', 'workspaceId', 'ownerId', 'memberUids', 'title', 'quote',
+          'channel', 'customerSegment', 'reporterName', 'urgency',
+          'linkedRequestId', 'arrImpact', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'workspaceId', 'ownerId', 'memberUids', 'title', 'quote',
+          'channel', 'customerSegment', 'reporterName', 'urgency',
+          'linkedRequestId', 'arrImpact', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) && data.id == feedbackId &&
+        isValidId(data.workspaceId) && data.workspaceId == workspaceId &&
+        isValidId(data.ownerId) &&
+        isValidMemberUids(data.memberUids) &&
+        data.title is string && data.title.size() >= 3 && data.title.size() <= 140 &&
+        data.quote is string && data.quote.size() >= 5 && data.quote.size() <= 1500 &&
+        data.channel in ['interview', 'support', 'analytics', 'sales', 'competitive'] &&
+        data.customerSegment is string && data.customerSegment.size() <= 80 &&
+        data.reporterName is string && data.reporterName.size() <= 80 &&
+        data.urgency in ['high', 'medium', 'low'] &&
+        data.linkedRequestId is string && data.linkedRequestId.size() <= 128 &&
+        data.arrImpact is string && data.arrImpact.size() <= 40 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp && data.updatedAt == request.time;
+    }
+
+    function isValidAlignmentDecision(data, workspaceId, decisionId) {
+      return data.keys().hasAll([
+          'id', 'workspaceId', 'ownerId', 'memberUids', 'requestId',
+          'title', 'decisionType', 'rationale', 'tradeOffs',
+          'confidencePct', 'decidedBy', 'approvalStatus', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'workspaceId', 'ownerId', 'memberUids', 'requestId',
+          'title', 'decisionType', 'rationale', 'tradeOffs',
+          'confidencePct', 'decidedBy', 'approvalStatus', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) && data.id == decisionId &&
+        isValidId(data.workspaceId) && data.workspaceId == workspaceId &&
+        isValidId(data.ownerId) &&
+        isValidMemberUids(data.memberUids) &&
+        data.requestId is string && data.requestId.size() <= 128 &&
+        data.title is string && data.title.size() >= 3 && data.title.size() <= 140 &&
+        data.decisionType in ['build', 'explore', 'defer', 'kill', 'scope_change'] &&
+        data.rationale is string && data.rationale.size() >= 5 && data.rationale.size() <= 2000 &&
+        data.tradeOffs is string && data.tradeOffs.size() <= 1000 &&
+        data.confidencePct is number && data.confidencePct >= 0 && data.confidencePct <= 100 &&
+        data.decidedBy is string && data.decidedBy.size() >= 2 && data.decidedBy.size() <= 80 &&
+        data.approvalStatus in ['proposed', 'aligned', 'locked'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp && data.updatedAt == request.time;
+    }
+
+    // --- Collection Rules ---
+
+    // Private User Profile (PII Isolation)
+    match /users/{userId}/private/profile {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId) && isVerifiedUser() && isOwner(userId) &&
+        isValidUserProfile(incoming(), userId);
+      allow update: if isValidId(userId) && isVerifiedUser() && isOwner(userId) &&
+        isValidUserProfile(incoming(), userId) &&
+        incoming().uid == existing().uid &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email', 'role', 'activeWorkspaceId', 'updatedAt']);
+      allow delete: if isValidId(userId) && isOwner(userId);
+    }
+
+    // Product Workspaces
+    match /workspaces/{workspaceId} {
+      allow get: if isValidId(workspaceId) && isSignedIn() && request.auth.uid in existing().memberUids;
+      allow list: if isSignedIn() && request.auth.uid in existing().memberUids;
+      allow create: if isValidId(workspaceId) && isVerifiedUser() &&
+        isValidWorkspace(incoming(), workspaceId) &&
+        incoming().ownerId == request.auth.uid &&
+        incoming().createdAt == request.time;
+      allow update: if isValidId(workspaceId) && isVerifiedUser() &&
+        isValidWorkspace(incoming(), workspaceId) &&
+        existing().ownerId == request.auth.uid &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'name', 'productArea', 'quarter', 'northStarMetric',
+          'northStarCurrent', 'northStarTarget', 'memberUids', 'updatedAt'
+        ]);
+      allow delete: if isValidId(workspaceId) && isSignedIn() && existing().ownerId == request.auth.uid;
+
+      // Feature Requests & Backlog Items
+      match /requests/{requestId} {
+        allow get: if isValidId(workspaceId) && isValidId(requestId) && isWorkspaceMember(workspaceId);
+        allow list: if isSignedIn() && request.auth.uid in existing().memberUids;
+        allow create: if isValidId(workspaceId) && isValidId(requestId) && isVerifiedUser() &&
+          isValidFeatureRequest(incoming(), workspaceId, requestId) &&
+          incoming().ownerId == request.auth.uid &&
+          incoming().createdAt == request.time &&
+          isWorkspaceMemberAfter(workspaceId);
+        allow update: if isValidId(workspaceId) && isValidId(requestId) && isVerifiedUser() &&
+          isValidFeatureRequest(incoming(), workspaceId, requestId) &&
+          isWorkspaceMember(workspaceId) &&
+          existing().status != 'shipped' &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().workspaceId == existing().workspaceId &&
+          incoming().createdAt == existing().createdAt &&
+          (
+            // Action 1: RICE Scoring & Prioritization
+            (incoming().diff(existing()).affectedKeys().hasOnly([
+              'reach', 'impact', 'confidence', 'effort', 'riceScore', 'confidenceLevel', 'updatedAt'
+            ])) ||
+            // Action 2: Roadmap Horizon & Status Transition
+            (incoming().diff(existing()).affectedKeys().hasOnly([
+              'horizon', 'status', 'timeframe', 'sprint', 'storyPoints', 'deferralReason', 'revisitCondition', 'updatedAt'
+            ])) ||
+            // Action 3: Full PRD & Problem Definition Edit (Item Owner or Workspace Owner)
+            ((existing().ownerId == request.auth.uid || isWorkspaceOwner(workspaceId)) &&
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'title', 'problemStatement', 'persona', 'ownerName', 'timeframe',
+                'horizon', 'status', 'reach', 'impact', 'confidence', 'effort', 'riceScore',
+                'successMetric', 'metricBaseline', 'metricTarget', 'nonGoals',
+                'solutionOverview', 'acceptanceCriteria', 'rollbackCriteria',
+                'deferralReason', 'revisitCondition', 'requestSource', 'confidenceLevel',
+                'storyPoints', 'sprint', 'updatedAt'
+              ])
+            )
+          );
+        allow delete: if isValidId(workspaceId) && isValidId(requestId) &&
+          isWorkspaceMember(workspaceId) &&
+          (existing().ownerId == request.auth.uid || isWorkspaceOwner(workspaceId));
+      }
+
+      // Customer Feedback & Discovery Evidence
+      match /feedback/{feedbackId} {
+        allow get: if isValidId(workspaceId) && isValidId(feedbackId) && isWorkspaceMember(workspaceId);
+        allow list: if isSignedIn() && request.auth.uid in existing().memberUids;
+        allow create: if isValidId(workspaceId) && isValidId(feedbackId) && isVerifiedUser() &&
+          isValidFeedbackItem(incoming(), workspaceId, feedbackId) &&
+          incoming().ownerId == request.auth.uid &&
+          incoming().createdAt == request.time &&
+          isWorkspaceMemberAfter(workspaceId);
+        allow update: if isValidId(workspaceId) && isValidId(feedbackId) && isVerifiedUser() &&
+          isValidFeedbackItem(incoming(), workspaceId, feedbackId) &&
+          isWorkspaceMember(workspaceId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().workspaceId == existing().workspaceId &&
+          incoming().createdAt == existing().createdAt &&
+          (
+            // Action 1: Link Evidence to Feature Request
+            (incoming().diff(existing()).affectedKeys().hasOnly(['linkedRequestId', 'urgency', 'updatedAt'])) ||
+            // Action 2: Edit Evidence Details (Owner or Workspace Owner)
+            ((existing().ownerId == request.auth.uid || isWorkspaceOwner(workspaceId)) &&
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'title', 'quote', 'channel', 'customerSegment', 'reporterName',
+                'urgency', 'linkedRequestId', 'arrImpact', 'updatedAt'
+              ])
+            )
+          );
+        allow delete: if isValidId(workspaceId) && isValidId(feedbackId) &&
+          isWorkspaceMember(workspaceId) &&
+          (existing().ownerId == request.auth.uid || isWorkspaceOwner(workspaceId));
+      }
+
+      // Alignment Decisions Log
+      match /decisions/{decisionId} {
+        allow get: if isValidId(workspaceId) && isValidId(decisionId) && isWorkspaceMember(workspaceId);
+        allow list: if isSignedIn() && request.auth.uid in existing().memberUids;
+        allow create: if isValidId(workspaceId) && isValidId(decisionId) && isVerifiedUser() &&
+          isValidAlignmentDecision(incoming(), workspaceId, decisionId) &&
+          incoming().ownerId == request.auth.uid &&
+          incoming().createdAt == request.time &&
+          isWorkspaceMemberAfter(workspaceId);
+        allow update: if isValidId(workspaceId) && isValidId(decisionId) && isVerifiedUser() &&
+          isValidAlignmentDecision(incoming(), workspaceId, decisionId) &&
+          isWorkspaceMember(workspaceId) &&
+          existing().approvalStatus != 'locked' &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().workspaceId == existing().workspaceId &&
+          incoming().createdAt == existing().createdAt &&
+          (
+            // Action 1: Stakeholder Alignment Sign-Off
+            (incoming().diff(existing()).affectedKeys().hasOnly(['approvalStatus', 'updatedAt'])) ||
+            // Action 2: Refine Rationale & Trade-Offs (Owner or Workspace Owner)
+            ((existing().ownerId == request.auth.uid || isWorkspaceOwner(workspaceId)) &&
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'requestId', 'title', 'decisionType', 'rationale', 'tradeOffs',
+                'confidencePct', 'decidedBy', 'approvalStatus', 'updatedAt'
+              ])
+            )
+          );
+        allow delete: if isValidId(workspaceId) && isValidId(decisionId) &&
+          isWorkspaceMember(workspaceId) &&
+          (existing().ownerId == request.auth.uid || isWorkspaceOwner(workspaceId));
+      }
+    }
+  }
+}
